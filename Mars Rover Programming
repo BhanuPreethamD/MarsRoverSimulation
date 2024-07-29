@@ -1,0 +1,184 @@
+import java.util.*;
+import java.util.logging.Logger;
+
+// Command Pattern
+interface Command {
+    void execute(Rover rover);
+}
+
+class MoveCommand implements Command {
+    private static final Logger logger = Logger.getLogger(MoveCommand.class.getName());
+
+    @Override
+    public void execute(Rover rover) {
+        logger.info("Executing move command");
+        rover.move();
+    }
+}
+
+class TurnLeftCommand implements Command {
+    private static final Logger logger = Logger.getLogger(TurnLeftCommand.class.getName());
+
+    @Override
+    public void execute(Rover rover) {
+        logger.info("Executing turn left command");
+        rover.turnLeft();
+    }
+}
+
+class TurnRightCommand implements Command {
+    private static final Logger logger = Logger.getLogger(TurnRightCommand.class.getName());
+
+    @Override
+    public void execute(Rover rover) {
+        logger.info("Executing turn right command");
+        rover.turnRight();
+    }
+}
+
+// Composite Pattern
+interface GridElement {
+    boolean isObstacle();
+}
+
+class EmptySpace implements GridElement {
+    @Override
+    public boolean isObstacle() {
+        return false;
+    }
+}
+
+class Obstacle implements GridElement {
+    @Override
+    public boolean isObstacle() {
+        return true;
+    }
+}
+
+// Grid class using Composite Pattern
+class Grid {
+    private final GridElement[][] elements;
+
+    public Grid(int width, int height) {
+        elements = new GridElement[height][width];
+        initializeGrid();
+    }
+
+    private void initializeGrid() {
+        for (GridElement[] row : elements) {
+            Arrays.fill(row, new EmptySpace());
+        }
+    }
+
+    public void setObstacle(int x, int y) {
+        elements[y][x] = new Obstacle();
+    }
+
+    public boolean isObstacle(int x, int y) {
+        return elements[y][x].isObstacle();
+    }
+
+    public boolean isWithinBounds(int x, int y) {
+        return x >= 0 && x < elements[0].length && y >= 0 && y < elements.length;
+    }
+}
+
+// Direction enum
+enum Direction {
+    NORTH, EAST, SOUTH, WEST;
+
+    public Direction turnLeft() {
+        return values()[(ordinal() + 3) % 4];
+    }
+
+    public Direction turnRight() {
+        return values()[(ordinal() + 1) % 4];
+    }
+}
+
+// Rover class
+class Rover {
+    private static final Logger logger = Logger.getLogger(Rover.class.getName());
+
+    private int x;
+    private int y;
+    private Direction direction;
+    private final Grid grid;
+
+    public Rover(int x, int y, Direction direction, Grid grid) {
+        this.x = x;
+        this.y = y;
+        this.direction = direction;
+        this.grid = grid;
+    }
+
+    public void move() {
+        int newX = x;
+        int newY = y;
+
+        switch (direction) {
+            case NORTH:
+                newY++;
+                break;
+            case EAST:
+                newX++;
+                break;
+            case SOUTH:
+                newY--;
+                break;
+            case WEST:
+                newX--;
+                break;
+        }
+
+        if (grid.isWithinBounds(newX, newY) && !grid.isObstacle(newX, newY)) {
+            x = newX;
+            y = newY;
+            logger.info("Rover moved to (" + x + ", " + y + ")");
+        } else {
+            logger.warning("Movement blocked: Obstacle or out of bounds");
+        }
+    }
+
+    public void turnLeft() {
+        direction = direction.turnLeft();
+        logger.info("Rover turned left, now facing " + direction);
+    }
+
+    public void turnRight() {
+        direction = direction.turnRight();
+        logger.info("Rover turned right, now facing " + direction);
+    }
+
+    public String getStatusReport() {
+        return "Rover is at (" + x + ", " + y + ") facing " + direction;
+    }
+}
+
+// Main simulation class
+public class MarsRoverSimulation {
+    private static final Logger logger = Logger.getLogger(MarsRoverSimulation.class.getName());
+
+    public static void main(String[] args) {
+        Grid grid = new Grid(10, 10);
+        grid.setObstacle(2, 2);
+        grid.setObstacle(3, 5);
+
+        Rover rover = new Rover(0, 0, Direction.NORTH, grid);
+
+        List<Command> commands = Arrays.asList(
+            new MoveCommand(),
+            new MoveCommand(),
+            new TurnRightCommand(),
+            new MoveCommand(),
+            new TurnLeftCommand(),
+            new MoveCommand()
+        );
+
+        for (Command command : commands) {
+            command.execute(rover);
+        }
+
+        logger.info(rover.getStatusReport());
+    }
+}
